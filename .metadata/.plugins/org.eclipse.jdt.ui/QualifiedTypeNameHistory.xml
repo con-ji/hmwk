@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<qualifiedTypeNameHistroy>
+<fullyQualifiedTypeName name="java.io.FileWriter"/>
+<fullyQualifiedTypeName name="java.awt.image.ConvolveOp"/>
+<fullyQualifiedTypeName name="java.awt.image.Kernel"/>
+<fullyQualifiedTypeName name="calhacks.hwio.extraction.ExtractBoxes"/>
+<fullyQualifiedTypeName name="java.awt.image.RescaleOp"/>
+<fullyQualifiedTypeName name="java.util.ArrayList"/>
+<fullyQualifiedTypeName name="java.awt.image.BufferedImage"/>
+<fullyQualifiedTypeName name="net.sourceforge.tess4j.Tesseract"/>
+<fullyQualifiedTypeName name="net.sourceforge.tess4j.ITesseract"/>
+<fullyQualifiedTypeName name="java.io.File"/>
+<fullyQualifiedTypeName name="javax.imageio.ImageIO"/>
+<fullyQualifiedTypeName name="calhacks.hwio.extraction.ExtractText"/>
+<fullyQualifiedTypeName name="java.lang.System"/>
+</qualifiedTypeNameHistroy>

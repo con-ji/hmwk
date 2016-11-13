@@ -1,0 +1,175 @@
+package calhacks.hwio.watson;
+
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.google.gson.Gson;
+import com.ibm.watson.developer_cloud.alchemy.v1.AlchemyLanguage;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Concept;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Concepts;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.DocumentText;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Entities;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Entity;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Keyword;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Keywords;
+
+import net.billylieurance.azuresearch.AzureSearchNewsQuery;
+import net.billylieurance.azuresearch.AzureSearchNewsResult;
+import net.billylieurance.azuresearch.AzureSearchRelatedSearchQuery;
+import net.billylieurance.azuresearch.AzureSearchRelatedSearchResult;
+import net.billylieurance.azuresearch.AzureSearchResultSet;
+import net.billylieurance.azuresearch.AzureSearchWebQuery;
+import net.billylieurance.azuresearch.AzureSearchWebResult;
+
+public class GetDocuments {
+	
+	public final static String alchemyKey = "423e8269d2c0b502044ba355623cfd085b9b63a3";
+	public final static String accountKey = "ASO1VKURr/0yoPCHATFWCXkSQYjtFb02kAM6P2xbHSU";
+	public static String getDocuments(String inputKey){
+		AlchemyLanguage service = new AlchemyLanguage();
+		service.setApiKey(alchemyKey);
+		Map<String,Object> params = new HashMap<String, Object>();
+		
+		params.put(AlchemyLanguage.TEXT, inputKey);
+		Concepts concepts = service.getConcepts(params).execute();
+		Entities entities = service.getEntities(params).execute();
+		Keywords keywords = service.getKeywords(params).execute(); 
+		
+		HashMap<String, ArrayList<Double>> queryMap = new HashMap<String, ArrayList<Double>>();
+		for (Concept c : concepts.getConcepts()) {
+			//System.out.println(c);
+			String text = c.getText();
+			double relevance = c.getRelevance();
+			if (!queryMap.containsKey(text)) {
+				ArrayList<Double> probs = new ArrayList<Double>();
+				probs.add(relevance);
+				queryMap.put(text, probs);
+			} else {
+				queryMap.get(text).add(relevance);
+			}
+		}
+		for (Entity e : entities.getEntities()) {
+			//System.out.println(e);
+			String text = e.getText();
+			double relevance = e.getRelevance();
+			if (!queryMap.containsKey(text)) {
+				ArrayList<Double> probs = new ArrayList<Double>();
+				probs.add(relevance);
+				queryMap.put(text, probs);
+			} else {
+				queryMap.get(text).add(relevance);
+			}
+		}
+		for (Keyword k : keywords.getKeywords()) {
+			//System.out.println(k);
+			String text = k.getText();
+			double relevance = k.getRelevance();
+			if (!queryMap.containsKey(text)) {
+				ArrayList<Double> probs = new ArrayList<Double>();
+				probs.add(relevance);
+				queryMap.put(text, probs);
+			} else {
+				queryMap.get(text).add(relevance);
+			}
+		}
+		
+		HashMap<String, Double> totalProbs = new HashMap<String, Double>();
+		for (String key : queryMap.keySet()) {
+			ArrayList<Double> probs = queryMap.get(key);
+			int size = probs.size();
+			switch (size) {
+			case 1:
+				totalProbs.put(key, Math.pow(probs.get(0), 3));
+				break;
+			case 2:
+				totalProbs.put(key, probs.get(0) * probs.get(1) * (probs.get(0) + probs.get(1)) / 2);
+				break;
+			case 3:
+				totalProbs.put(key, probs.get(0) * probs.get(1) * probs.get(2));
+				break;
+			default:
+				break;
+			}
+		}
+		System.out.println(totalProbs.toString());
+		//System.out.println(concepts);
+		//System.out.println(keywords.getKeywords().get(0).getText());
+		
+		HashMap.Entry<String, Double> maxEntry = null;
+		for (HashMap.Entry<String, Double> entry : totalProbs.entrySet()) {
+			if (maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0) {
+				maxEntry = entry;
+			}
+		}
+		System.out.println(maxEntry.getKey());
+		return maxEntry.getKey();	
+	}
+	
+	/*
+	public static void queryGoogle(String query) throws IOException {
+		System.out.println("====== Query Google");
+		String google = "http://ajax.googleapis.com/ajax/services/search/web?v=1.0&q=";
+		String charset = "UTF-8";
+		
+		URL url = new URL(google + URLEncoder.encode(query, charset));
+		Reader reader = new InputStreamReader(url.openStream(), charset);
+		GoogleResults results = new Gson().fromJson(reader, GoogleResults.class);
+		
+		System.out.println(results.getResponseData().getResults().get(0).getTitle());
+		System.out.println(results.getResponseData().getResults().get(0).getUrl());
+		
+	}
+	*/
+	public static void queryBing(String query) throws UnsupportedEncodingException {
+		
+        
+		AzureSearchWebQuery aq = new AzureSearchWebQuery();
+		AzureSearchRelatedSearchQuery aq2 = new AzureSearchRelatedSearchQuery();
+		
+        aq.setAppid(accountKey);
+        aq.setQuery(query);
+        aq.doQuery();
+        aq2.setAppid(accountKey);
+        aq2.setQuery(query);
+        aq2.doQuery();
+        
+        AzureSearchResultSet<AzureSearchWebResult> ars = aq.getQueryResult();
+        AzureSearchResultSet<AzureSearchRelatedSearchResult> ars2 = aq2.getQueryResult();
+        /*
+        for (AzureSearchWebResult anr : ars) {
+        	System.out.println(anr.getUrl());
+        	System.out.println(anr.getDisplayUrl());
+        	
+        }
+        System.out.println("==============");
+        System.out.println(ars2);
+        for (AzureSearchRelatedSearchResult anr : ars2) {
+        	System.out.println(anr.getBingUrl());
+        }
+        System.out.println("======");
+        */
+        
+        String mostRelevantLink = ars.getAsrs().get(0).getDisplayUrl();
+        System.out.println(mostRelevantLink);
+        
+        AlchemyLanguage service = new AlchemyLanguage();
+		service.setApiKey(alchemyKey);
+		Map<String,Object> params = new HashMap<String, Object>();
+		
+		params.put(AlchemyLanguage.URL, mostRelevantLink);
+		DocumentText text = service.getText(params).execute();
+		//System.out.println(text.getText());
+        
+	}
+}

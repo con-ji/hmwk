@@ -1,0 +1,31 @@
+package calhacks.hwio.extraction;
+
+import java.awt.image.BufferedImage;
+import java.awt.image.ConvolveOp;
+import java.awt.image.DataBufferByte;
+import java.awt.image.Kernel;
+import java.awt.image.RescaleOp;
+import java.util.ArrayList;
+
+public class ExtractBoxes {
+	private static int[] convolveSize = {40, 40};
+	public static ArrayList<BufferedImage> extract(BufferedImage image){
+		int convTotLength = convolveSize[0] * convolveSize[1];
+		float[] convVals = new float[convTotLength];
+		for (int i = 0; i < convTotLength; i++){
+			convVals[i] = (float) (1.0 / convTotLength);
+		}
+		ConvolveOp conv = new ConvolveOp(new Kernel(convolveSize[0], convolveSize[1], convVals));
+		BufferedImage convImage = conv.createCompatibleDestImage(image, null);
+		convImage = conv.filter(image, convImage);
+		for (int i = 0; i < 5; i++){
+			RescaleOp rescale = new RescaleOp(1.5f, -100, null);
+			convImage = rescale.filter(convImage, null);
+		}
+		
+		ArrayList<BufferedImage> al = new ArrayList<BufferedImage>();
+		al.add(convImage);
+		
+		return al;
+	}
+}

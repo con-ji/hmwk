@@ -1,0 +1,28 @@
+package calhacks.hwio.watson;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.ibm.watson.developer_cloud.alchemy.v1.AlchemyLanguage;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Concepts;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Entities;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Keywords;
+
+public class GetDocuments {
+	
+	public final static String APIKEY = "423e8269d2c0b502044ba355623cfd085b9b63a3";
+	public static ArrayList<String> getDocuments(String inputKey){
+		AlchemyLanguage service = new AlchemyLanguage();
+		service.setApiKey(APIKEY);
+		Map<String,Object> params = new HashMap<String, Object>();
+		
+		params.put(AlchemyLanguage.TEXT, inputKey);
+		Concepts concepts = service.getConcepts(params).execute();
+		//Entities entities = service.getEntities(params).execute();
+		Keywords keywords = service.getKeywords(params).execute(); 
+		//System.out.println(concepts);
+		System.out.println(keywords.getKeywords().get(0)['text']);
+		return null;	
+	}
+}

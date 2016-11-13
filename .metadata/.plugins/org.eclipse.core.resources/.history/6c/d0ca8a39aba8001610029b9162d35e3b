@@ -1,0 +1,40 @@
+package calhacks.hwio;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
+import javax.imageio.*;
+
+/**
+ * Hello world!
+ *
+ */
+public class App 
+{
+    public static void main( String[] args )
+    {
+        String returnString = "";
+        BufferedImage img;
+        try {
+			img = ImageIO.read(new File(fileIndex));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			img = null;
+		}
+        
+        FileWriter file;
+        try {
+			file = new FileWriter("/../process/" + args[0] + ".json");
+			StringBuilder returnJson = new StringBuilder("{\"numArticles\":");
+			
+			returnJson.append(",\"");
+			returnJson.append("articles\":[");
+			
+			returnJson.append("]}");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			file = null;
+		}
+    }
+}

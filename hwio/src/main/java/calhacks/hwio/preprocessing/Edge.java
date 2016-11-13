@@ -1,0 +1,215 @@
+package calhacks.hwio.preprocessing;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.imgCodecs;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.video.*;
+
+import static java.lang.Math.max;
+import static java.lang.Math.sqrt;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.opencv.*;
+
+public class Edge {
+	public static String path = "image.jpg";
+
+	public void detectEdges() {
+		//read the RGB image
+		Mat rgbImage = Imgcodecs.imread(path);
+		//mat gray image holder
+		Mat imageGray = new Mat();
+		//mat canny image
+		Mat imageCny = new Mat();
+		//Show the RGB Image
+	
+		Imgproc.cvtColor(rgbImage, imageGray, Imgproc.COLOR_BGR2GRAY);
+		Imgproc.Canny(imageGray, imageCny, 25, 250, 3, true);
+		Imgcodecs.imwrite("output.png", imageCny);
+		//removeBackground(imageCny, rgbImage);
+		findContour(imageCny, rgbImage);
+	}
+
+	public List<MatOfPoint> sortContours(List<MatOfPoint> contours){
+		double max = 0;
+		List<MatOfPoint> topFive = new ArrayList<MatOfPoint>();
+		for(int z = 0; z <= 5; z += 1)
+		{
+			MatOfPoint largest = new MatOfPoint();
+			for(MatOfPoint x : contours){
+				if(Imgproc.contourArea(x) > max){
+					largest = x;
+					max = Imgproc.contourArea(x);
+					}
+				}
+			topFive.add(largest);
+			contours.remove(largest);
+		}
+		//Collections.reverse(topFive);
+		return topFive;
+	}
+	
+	public void findContour(Mat img, Mat original) {	
+		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+		Mat hierarchy = new Mat(); //this is unused
+		Imgproc.findContours(img.clone(), contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
+		
+		contours = sortContours(contours);
+
+		System.out.println(contours);
+		
+		MatOfPoint finalCont = new MatOfPoint();
+		for(MatOfPoint x : contours){
+			MatOfPoint2f fc = new MatOfPoint2f();
+			fc.fromArray(x.toArray());
+			//MatOfPoint2f fc = new MatOfPoint2f(x.toArray());
+			double perimeter = Imgproc.arcLength(fc, true);
+			MatOfPoint2f approx = new MatOfPoint2f();
+			Imgproc.approxPolyDP(fc, approx, 0.02 * perimeter, true);
+			if (approx.toList().size() == 4){
+				finalCont = new MatOfPoint(approx.toArray());
+				break;
+			}
+		}
+		Scalar scalar = new Scalar(255, 255, 255);
+		List<MatOfPoint> finalList = new ArrayList<MatOfPoint>();
+		finalList.add(finalCont);
+		System.out.println(finalList);
+		Imgproc.drawContours(img, finalList, -1, scalar, 3);
+		Imgcodecs.imwrite("output4.png", img);
+		List<Point> points = finalCont.toList();	
+		points = normalizedPoints(points);
+		Point p1 = points.get(0), p2 = points.get(1), p3 = points.get(2), p4 = points.get(3);
+		System.out.println(points);
+		
+		for(Point p: points){
+			Imgproc.circle(img, p, 5, scalar, 30);
+		}
+		
+		Mat transformMatrix = new Mat();
+		Mat src_mat=new Mat(4,1,CvType.CV_32FC2);
+	    Mat dst_mat=new Mat(4,1,CvType.CV_32FC2);
+	    
+	    src_mat.put(0, 0, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y);
+		
+		double height = maxX(p1, p2, p3, p4), width = maxY(p1, p2, p3, p4); //wtf
+		
+		System.out.println(width);
+		System.out.println(height);
+		
+	    dst_mat.put(0,0,0.0,0.0,width,0, width,height,0,height);
+		transformMatrix = Imgproc.getPerspectiveTransform(src_mat, dst_mat);
+		Mat clone = original.clone();
+	    Imgproc.warpPerspective(original, clone, transformMatrix, new Size(width,height));
+		System.out.println(transformMatrix.toString());
+		
+		//warped = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
+		//warped = threshold_adaptive(warped, 251, offset = 10)
+		//warped = warped.astype("uint8") * 255
+		
+		Imgproc.cvtColor(clone, clone, Imgproc.COLOR_BGR2GRAY);
+		//Imgproc.threshold(clone, clone, 0, 255, Imgproc.THRESH_OTSU);
+		
+		Imgcodecs.imwrite("output5.png", clone);
+	}
+	
+	public List<Point> normalizedPoints(List<Point> points){
+		
+		//top left and bottom right
+		//Point p1, p2, p3, p4;
+		List<Point> sortedPoints = new ArrayList<Point>();
+		Point p1 = new Point(0,0);
+		Point p2 = new Point(0,0);
+		Point p3 = new Point(0,0);
+		Point p4 = new Point(0,0);
+
+		
+		double min = 99999, max = 0;
+		for (Point p: points){
+			double sum = p.x + p.y;
+			if (sum > max){
+				max = sum;
+				p3 = p;
+			}
+			if (sum < min){
+				min = sum;
+				p1 = p;
+			}
+		}
+		//top right and bottom left
+		double diffMin = 99999, diffMax = 0;
+		for (Point p: points){
+			double diff = p.x - p.y;
+			if (diff > diffMax){
+				diffMax = diff;
+				p2 = p;
+			}
+			if (diff < diffMin){
+				diffMin = diff;
+				p4 = p;
+			}
+		}
+		sortedPoints.add(p1);
+		sortedPoints.add(p2);
+		sortedPoints.add(p3);
+		sortedPoints.add(p4);
+
+		return sortedPoints;
+	}
+	
+	
+	public double maxX(Point p1, Point p2, Point p3, Point p4){
+		double bx = p3.x - p2.x;
+		double by = p3.y - p2.y;
+		double tx = p4.x - p1.x;
+		double ty = p4.y - p1.y;
+		double widthA = sqrt((bx * bx) + (by * by));
+		double widthB = sqrt((tx * tx) + (ty * ty));
+		return max(widthA, widthB);
+	}
+	
+	public double maxY(Point p1, Point p2, Point p3, Point p4){
+		double lx = p1.x - p2.x;
+		double ly = p1.y - p2.y;
+		double rx = p4.x - p3.x;
+		double ry = p4.y - p4.y;
+		double heightA = sqrt((lx * lx) + (ly * ly));
+		double heightB = sqrt((rx * rx) + (ry * ry));
+		return max(heightA, heightB);
+	}
+	
+	public void removeBackground(Mat img, Mat stock){
+		BackgroundSubtractorMOG2 bgs =  Video.createBackgroundSubtractorMOG2();
+		Mat fg = new Mat();
+        bgs.apply(img, fg);
+		Imgcodecs.imwrite("output2.png", fg);
+	}
+	
+	/**
+	public void transform(){
+		Mat srcImage = Imgcodecs.imread("image.jpg");
+		Mat destImage = new Mat(500, 700, srcImage.type());
+		Mat src = new MatOfPoint2f(new Point(x1, y1), new Point(x2, y2), new Point(x3, y3), new Point(x4, y4));
+		Mat dst = new MatOfPoint2f(new Point(0, 0), new Point(destImage.width() - 1, 0), new Point(destImage.width() - 1, destImage.height() - 1), new Point(0, destImage.height() - 1));
+		Mat transform = Imgproc.getPerspectiveTransform(src, dst);
+		Imgproc.warpPerspective(srcImage, destImage, transform, destImage.size());
+	}
+	*/
+	
+	public static void main(String[] args) {
+		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+		Edge edgeDetection = new Edge();
+		edgeDetection.detectEdges();
+	}
+
+}

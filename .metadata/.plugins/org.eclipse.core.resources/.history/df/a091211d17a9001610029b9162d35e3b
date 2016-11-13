@@ -1,0 +1,10 @@
+package calhacks.hwio.extraction;
+
+import java.util.ArrayList;
+
+public class ExtractText {
+	
+	public static ArrayList<String> extract(<BufferedImage> bil){
+		
+	}
+}

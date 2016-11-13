@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?><testrun name="AppTest" project="hwio" tests="2" started="2" failures="0" errors="0" ignored="0">
+  <testsuite name="calhacks.hwio.AppTest" time="29.063">
+    <testcase name="testImage" classname="calhacks.hwio.AppTest" time="29.063"/>
+    <testcase name="testApp" classname="calhacks.hwio.AppTest" time="0.0"/>
+  </testsuite>
+</testrun>

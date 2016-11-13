@@ -1,0 +1,110 @@
+package calhacks.hwio.extraction;
+
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.awt.image.ConvolveOp;
+import java.awt.image.DataBufferByte;
+import java.awt.image.Kernel;
+import java.awt.image.RescaleOp;
+import java.util.ArrayList;
+
+public class ExtractBoxes {
+	private static int[] convolveSize = {40, 40};
+	private static final float GRADIENT = (float) 222.0;
+	
+	public static BufferedImage extract(BufferedImage image){
+		int convTotLength = convolveSize[0] * convolveSize[1];
+		float[] convVals = new float[convTotLength];
+		for (int i = 0; i < convTotLength; i++){
+			convVals[i] = (float) (1.0 / convTotLength);
+		}
+		ConvolveOp conv = new ConvolveOp(new Kernel(convolveSize[0], convolveSize[1], convVals));
+		BufferedImage convImage = conv.createCompatibleDestImage(image, null);
+		convImage = conv.filter(image, convImage);
+		for (int i = 0; i < 3; i++){
+			RescaleOp rescale = new RescaleOp(1.5f, -105, null);
+			convImage = rescale.filter(convImage, null);
+		}
+		
+		System.out.println("Blur convolution done");		
+		return ExtractBoxes.isolateText(convImage, image);
+	}
+	
+	public static float distanceBetween(byte[] src, byte[] tar) {
+		float[] a2 = new float[3];
+		for (int i = 0; i < 3; i++){a2[i] = (src[i] - tar[i]) * (src[i] - tar[i]);}
+		return (float) Math.sqrt(a2[0] + a2[1] + a2[2]);
+	}
+	public static void changePixel(boolean[][] edges, int xInd, int yInd, int maxXInd, int maxYInd){
+		if (xInd < 0 || xInd > maxXInd || yInd < 0 || yInd > maxYInd){
+			return;
+		}
+		/*
+		if (edges[xInd][yInd] == false){
+			return;
+		}else{
+			edges[xInd][yInd] = false;
+			changePixel(edges, xInd - 1, yInd, maxXInd, maxYInd);
+			changePixel(edges, xInd + 1, yInd, maxXInd, maxYInd);
+			changePixel(edges, xInd, yInd - 1, maxXInd, maxYInd);
+			changePixel(edges, xInd, yInd + 1, maxXInd, maxYInd);
+		}
+		*/
+		edges[xInd][yInd] = false;
+		if (edges[xInd - 1][yInd]) {
+			changePixel(edges, xInd - 1, yInd, maxXInd, maxYInd);
+		}
+		if (edges[xInd + 1][yInd]) {
+			changePixel(edges, xInd + 1, yInd, maxXInd, maxYInd);
+		}
+		if (edges[xInd][yInd - 1]) {
+			changePixel(edges, xInd, yInd - 1, maxXInd, maxYInd);
+		}
+		if (edges[xInd][yInd + 1]) {
+			changePixel(edges, xInd, yInd + 1, maxXInd, maxYInd);
+		}
+
+		
+	}
+	
+	public static BufferedImage isolateText(BufferedImage image, BufferedImage origImage) {
+		int[] conSize = {3, 3};
+		float[] convVals = {0f, -0.5f, 0f, -0.5f, 0, 0.5f, 0, 0.5f, 0};
+		ConvolveOp conv = new ConvolveOp(new Kernel(conSize[0], conSize[1], convVals));
+		BufferedImage convImage = conv.createCompatibleDestImage(image, null);
+		convImage = conv.filter(image, convImage);
+		
+//		byte[][][] imgColors = new byte[3][convImage.getWidth()][convImage.getHeight()];
+		boolean[][] edge = new boolean[convImage.getWidth()][convImage.getHeight()];
+		
+		System.out.println("Gradient convolution");
+		
+		for (int i = 0; i < convImage.getWidth(); i++) {
+			for (int j = 0; j < convImage.getHeight(); j++) {
+				Color color = new Color(convImage.getRGB(i, j));
+				byte[] rgb = new byte[3];
+				rgb[0] = (byte) color.getRed();
+				rgb[1] = (byte) color.getBlue();
+				rgb[2]  = (byte) color.getGreen();
+				byte[] origin = {0, 0, 0};
+				
+				edge[i][j] = distanceBetween(origin, rgb) < GRADIENT;
+			}
+		}
+		
+		System.out.println("Edge detection");
+		
+		changePixel(edge, 100, 100, convImage.getWidth() - 1, convImage.getHeight() - 1);
+		
+		for (int i = 0; i < convImage.getWidth(); i++){
+			for (int j = 0; j < convImage.getHeight(); j++){
+				if (!edge[i][j]){
+					origImage.setRGB(i, j, Color.WHITE.getRGB());
+				}
+			}
+		}
+		
+		System.out.println("Anna is a whore");
+		return origImage;
+	}
+}

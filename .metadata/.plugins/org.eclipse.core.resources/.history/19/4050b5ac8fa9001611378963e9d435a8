@@ -1,0 +1,104 @@
+package calhacks.hwio.watson;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.ibm.watson.developer_cloud.alchemy.v1.AlchemyLanguage;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Concept;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Concepts;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Entities;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Entity;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Keyword;
+import com.ibm.watson.developer_cloud.alchemy.v1.model.Keywords;
+
+public class GetDocuments {
+	
+	public final static String APIKEY = "423e8269d2c0b502044ba355623cfd085b9b63a3";
+	public static String getDocuments(String inputKey){
+		AlchemyLanguage service = new AlchemyLanguage();
+		service.setApiKey(APIKEY);
+		Map<String,Object> params = new HashMap<String, Object>();
+		
+		params.put(AlchemyLanguage.TEXT, inputKey);
+		Concepts concepts = service.getConcepts(params).execute();
+		Entities entities = service.getEntities(params).execute();
+		Keywords keywords = service.getKeywords(params).execute(); 
+		
+		HashMap<String, ArrayList<Double>> queryMap = new HashMap<String, ArrayList<Double>>();
+		for (Concept c : concepts.getConcepts()) {
+			//System.out.println(c);
+			String text = c.getText();
+			double relevance = c.getRelevance();
+			if (!queryMap.containsKey(text)) {
+				ArrayList<Double> probs = new ArrayList<Double>();
+				probs.add(relevance);
+				queryMap.put(text, probs);
+			} else {
+				queryMap.get(text).add(relevance);
+			}
+		}
+		for (Entity e : entities.getEntities()) {
+			//System.out.println(e);
+			String text = e.getText();
+			double relevance = e.getRelevance();
+			if (!queryMap.containsKey(text)) {
+				ArrayList<Double> probs = new ArrayList<Double>();
+				probs.add(relevance);
+				queryMap.put(text, probs);
+			} else {
+				queryMap.get(text).add(relevance);
+			}
+		}
+		for (Keyword k : keywords.getKeywords()) {
+			//System.out.println(k);
+			String text = k.getText();
+			double relevance = k.getRelevance();
+			if (!queryMap.containsKey(text)) {
+				ArrayList<Double> probs = new ArrayList<Double>();
+				probs.add(relevance);
+				queryMap.put(text, probs);
+			} else {
+				queryMap.get(text).add(relevance);
+			}
+		}
+		
+		HashMap<String, Double> totalProbs = new HashMap<String, Double>();
+		for (String key : queryMap.keySet()) {
+			ArrayList<Double> probs = queryMap.get(key);
+			int size = probs.size();
+			switch (size) {
+			case 1:
+				totalProbs.put(key, Math.pow(probs.get(0), 3));
+				break;
+			case 2:
+				totalProbs.put(key, probs.get(0) * probs.get(1) * (probs.get(0) + probs.get(1)) / 2);
+				break;
+			case 3:
+				totalProbs.put(key, probs.get(0) * probs.get(1) * probs.get(2));
+				break;
+			default:
+				break;
+			}
+		}
+		System.out.println(totalProbs.toString());
+		//System.out.println(concepts);
+		//System.out.println(keywords.getKeywords().get(0).getText());
+		
+		HashMap.Entry<String, Double> maxEntry = null;
+		for (HashMap.Entry<String, Double> entry : totalProbs.entrySet()) {
+			if (maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0) {
+				maxEntry = entry;
+			}
+		}
+		System.out.println(maxEntry.getKey());
+		return maxEntry.getKey();	
+	}
+	
+	public static void queryGoogle(String query) {
+		String google = "http://ajax.googleapis.com/ajax/services/search/web?v=1.0&q=";
+		String charset = "UTF-8";
+		
+		
+	}
+}

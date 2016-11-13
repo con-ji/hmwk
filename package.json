@@ -1,0 +1,16 @@
+{
+  "name": "file-uploader",
+  "version": "1.0.0",
+  "description": "simple demo file uploader frontend shit",
+  "main": "index.js",
+  "scripts": {
+    "test": "test_file-uploader"
+  },
+  "author": "con-ji",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.14.0",
+    "formidable": "^1.0.17"
+  }
+
+}
